@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {Map, Marker, useControl, ControlPosition} from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
@@ -89,7 +89,11 @@ const drawProps = [
 
 function DrawControl(props: any) {
   useControl(
-    () => new MapboxDraw(props) as unknown as IControl,
+    () => { 
+      const draw = new MapboxDraw(props) as unknown as IControl;
+      if (props.drawRef) props.drawRef.current = draw;
+      return draw;
+    },
     ({ map }) => {
       map.on('draw.create', props.onCreate);
       map.on('draw.update', props.onUpdate);
@@ -111,6 +115,7 @@ function DrawControl(props: any) {
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('sensor');
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null);
+  const drawRef = useRef<any>(null);
 
   const flightPaths = [
     { id: 'north-survey', name: 'North Field Survey', date: 'Oct 2, 2024', status: 'completed', path: 'M 15% 20% L 40% 20% L 65% 20% L 65% 35% L 40% 35% L 15% 35% Z' },
@@ -140,6 +145,18 @@ export default function App() {
 
   const onCreate = (e: any) => {
     console.log('Created:', e.features);
+  };
+
+  const saveMission = () => {
+    if (drawRef.current) {
+      const data = drawRef.current.getAll();
+
+      if (data.features.length > 0) {
+        alert(`Captured ${data.features.length} shapes!`);
+      } else {
+        alert("No polygons drawn yet.");
+      }
+    }
   };
 
   return (
@@ -286,35 +303,39 @@ export default function App() {
             </div>
           </div>
           <div className="flex-1 relative z-0"> {/* The Map container */}
-          <Map
-        initialViewState={{
-          latitude: 42.35316,
-          longitude: -71.11777,
-          zoom: 12,
-          pitch: 0
-        }}
-          style={{ width: '100%', height: '100%' }}
-          mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
-          >
-            <DrawControl
-          position="top-left"
-          styles={drawProps}
-          displayControlsDefault={false}
-          controls={{
-            polygon: true,
-            trash: true,
-          }}
-          onCreate={onCreate}
-          onUpdate={onUpdate}
-        />
-
-            <Marker longitude={-71.11777} latitude={42.35316} anchor="bottom" draggable={true}>
-              <img src="./map-pin.png" className="w-16 h-16 object-contain"/>
-            </Marker>
-          </Map>
+            {/* Mission Buttons */}
+              <button
+              onClick={saveMission}
+              className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+              >
+                Save Mission
+              </button>
+            <Map
+              initialViewState={{
+                latitude: 42.35316,
+                longitude: -71.11777,
+                zoom: 12,
+                pitch: 0
+              }}
+              style={{ width: '100%', height: '100%' }}
+              mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+              >
+                <DrawControl
+                  //drawRef={drawRef}
+                  position="top-left"
+                  styles={drawProps}
+                  displayControlsDefault={false}
+                  controls={{
+                    polygon: true,
+                    trash: true,
+                  }}
+                  onCreate={onCreate}
+                  onUpdate={onUpdate}
+                />
+            </Map>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   );
 }
