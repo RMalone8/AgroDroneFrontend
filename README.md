@@ -1,4 +1,4 @@
-# AgriDrone Control System
+# AgroDrone Control System
 
 A React-based dashboard for semi-autonomous agricultural drone monitoring and control.
 
