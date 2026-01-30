@@ -89,9 +89,13 @@ const drawProps = [
 
 function DrawControl(props: any) {
   useControl(
-    () => { 
+    () => {
       const draw = new MapboxDraw(props) as unknown as IControl;
-      if (props.drawRef) props.drawRef.current = draw;
+      
+      if (props.onInstanceUpdate) {
+        props.onInstanceUpdate(draw);
+      }
+
       return draw;
     },
     ({ map }) => {
@@ -149,13 +153,7 @@ export default function App() {
 
   const saveMission = () => {
     if (drawRef.current) {
-      const data = drawRef.current.getAll();
-
-      if (data.features.length > 0) {
-        alert(`Captured ${data.features.length} shapes!`);
-      } else {
-        alert("No polygons drawn yet.");
-      }
+      console.log("Captured:", drawRef.current.getAll().features[1].geometry.coordinates);  
     }
   };
 
@@ -321,13 +319,15 @@ export default function App() {
               mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
               >
                 <DrawControl
-                  //drawRef={drawRef}
                   position="top-left"
                   styles={drawProps}
                   displayControlsDefault={false}
                   controls={{
                     polygon: true,
                     trash: true,
+                  }}
+                  onInstanceUpdate={(instance: any) => {
+                    drawRef.current = instance;
                   }}
                   onCreate={onCreate}
                   onUpdate={onUpdate}
