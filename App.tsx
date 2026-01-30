@@ -1,21 +1,112 @@
 import { useState } from 'react';
-import {Map, Marker} from '@vis.gl/react-maplibre';
+import {Map, Marker, useControl, ControlPosition} from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import MapboxDraw from '@mapbox/mapbox-gl-draw'
+import type { IControl } from 'maplibre-gl';
 //import ControlPanel from './control-panel';
 //import { MapProps } from '@vis.gl/react-maplibre';
 
 type TabType = 'sensor' | 'flights' | 'planning';
 
-const sky = {
-  'sky-color': '#80ccff',
-  'sky-horizon-blend': 0.5,
-  'horizon-color': '#ccddff',
-  'horizon-fog-blend': 0.5,
-  'fog-color': '#fcf0dd',
-  'fog-ground-blend': 0.2
-};
+const drawProps = [
+  // ACTIVE (being drawn)
+  // line stroke
+  {
+      "id": "gl-draw-line",
+      "type": "line",
+      "filter": ["all", ["==", "$type", "LineString"]],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#D20C0C",
+        "line-dasharray": [0.2, 2],
+        "line-width": 2
+      }
+  },
+  // polygon fill
+  {
+    "id": "gl-draw-polygon-fill",
+    "type": "fill",
+    "filter": ["all", ["==", "$type", "Polygon"]],
+    "paint": {
+      "fill-color": "#D20C0C",
+      "fill-outline-color": "#D20C0C",
+      "fill-opacity": 0.1
+    }
+  },
+  // polygon mid points
+  {
+    'id': 'gl-draw-polygon-midpoint',
+    'type': 'circle',
+    'filter': ['all',
+      ['==', '$type', 'Point'],
+      ['==', 'meta', 'midpoint']],
+    'paint': {
+      'circle-radius': 3,
+      'circle-color': '#fbb03b'
+    }
+  },
+  // polygon outline stroke
+  // This doesn't style the first edge of the polygon, which uses the line stroke styling instead
+  {
+    "id": "gl-draw-polygon-stroke-active",
+    "type": "line",
+    "filter": ["all", ["==", "$type", "Polygon"]],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "#D20C0C",
+      "line-dasharray": [0.2, 2],
+      "line-width": 2
+    }
+  },
+  // vertex point halos
+  {
+    "id": "gl-draw-polygon-and-line-vertex-halo-active",
+    "type": "circle",
+    "filter": ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"]],
+    "paint": {
+      "circle-radius": 5,
+      "circle-color": "#FFF"
+    }
+  },
+  // vertex points
+  {
+    "id": "gl-draw-polygon-and-line-vertex-active",
+    "type": "circle",
+    "filter": ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"]],
+    "paint": {
+      "circle-radius": 3,
+      "circle-color": "#D20C0C",
+    }
+  }
+];
 
-const terrain = {source: 'terrain-dem', exaggeration: 1.5};
+function DrawControl(props: any) {
+  useControl(
+    () => new MapboxDraw(props) as unknown as IControl,
+    ({ map }) => {
+      map.on('draw.create', props.onCreate);
+      map.on('draw.update', props.onUpdate);
+      map.on('draw.delete', props.onDelete);
+    },
+    ({ map }) => {
+      map.off('draw.create', props.onCreate);
+      map.off('draw.update', props.onUpdate);
+      map.off('draw.delete', props.onDelete);
+    },
+    {
+      position: props.position
+    }
+  );
+
+  return null;
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('sensor');
@@ -41,6 +132,14 @@ export default function App() {
       case 'in-progress': return 'stroke-blue-500';
       default: return 'stroke-gray-400';
     }
+  };
+
+  const onUpdate = (e: any) => {
+    console.log('Polygon coordinates:', e.features[0]);
+  };
+
+  const onCreate = (e: any) => {
+    console.log('Created:', e.features);
   };
 
   return (
@@ -149,10 +248,10 @@ export default function App() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 relative flex flex-col h-screen">
+        <div className="flex-1  flex flex-col min-h-0">
           {/* Tab Navigation */}
 
-          <div className="bg-white border-b border-gray-200">
+          <div className="bg-white border-b border-gray-200 z-20">
             <div className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab('sensor')}
@@ -186,6 +285,7 @@ export default function App() {
               </button>
             </div>
           </div>
+          <div className="flex-1 relative z-0"> {/* The Map container */}
           <Map
         initialViewState={{
           latitude: 42.35316,
@@ -193,14 +293,27 @@ export default function App() {
           zoom: 12,
           pitch: 0
         }}
+          style={{ width: '100%', height: '100%' }}
           mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
           >
+            <DrawControl
+          position="top-left"
+          styles={drawProps}
+          displayControlsDefault={false}
+          controls={{
+            polygon: true,
+            trash: true,
+          }}
+          onCreate={onCreate}
+          onUpdate={onUpdate}
+        />
+
             <Marker longitude={-71.11777} latitude={42.35316} anchor="bottom" draggable={true}>
               <img src="./map-pin.png" className="w-16 h-16 object-contain"/>
             </Marker>
-      </Map>
+          </Map>
+        </div>
       </div>
-
     </div>
   </div>
   );
