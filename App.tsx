@@ -153,7 +153,7 @@ export default function App() {
 
   const saveMission = () => {
     if (drawRef.current) {
-      console.log("Captured:", drawRef.current.getAll().features[1].geometry.coordinates);  
+      console.log("Captured:", drawRef.current.getAll().features[0].geometry.coordinates);  
     }
   };
 
@@ -302,12 +302,12 @@ export default function App() {
           </div>
           <div className="flex-1 relative z-0"> {/* The Map container */}
             {/* Mission Buttons */}
-              <button
+              {activeTab === 'planning' && (<button
               onClick={saveMission}
-              className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+              className="absolute top-1 right-1 z-50 bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
               >
                 Save Mission
-              </button>
+              </button>)}
             <Map
               initialViewState={{
                 latitude: 42.35316,
@@ -318,7 +318,7 @@ export default function App() {
               style={{ width: '100%', height: '100%' }}
               mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
               >
-                <DrawControl
+                {activeTab === 'planning' && (<DrawControl
                   position="top-left"
                   styles={drawProps}
                   displayControlsDefault={false}
@@ -331,7 +331,7 @@ export default function App() {
                   }}
                   onCreate={onCreate}
                   onUpdate={onUpdate}
-                />
+                />)}
             </Map>
           </div>
         </div>
