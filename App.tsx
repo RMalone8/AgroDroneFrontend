@@ -153,7 +153,27 @@ export default function App() {
 
   const saveMission = () => {
     if (drawRef.current) {
-      console.log("Captured:", drawRef.current.getAll().features[0].geometry.coordinates);  
+      const coords = drawRef.current.getAll().features[0].geometry.coordinates[0];
+
+      const vertices = coords.map((coord: number[], index: number) => {
+        return {"order": index, "lng": coord[0], "lat": coord[1]}
+      });
+
+      const content = {
+        "missionId": "uuid-1234-5678",
+        "createdAt": "2026-02-05T16:45:00Z", 
+        "totalVertices": vertices.length, // one will be a duplicate, so really -> # - 1 unique vertices
+        "vertices": vertices
+      };
+
+      fetch('http://localhost:8787/flightplan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
+        },
+        body: JSON.stringify(content)
+      });
     }
   };
 

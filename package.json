@@ -1,7 +1,8 @@
 {
-  "name": "figma-agridrone-project",
+  "name": "figma-agrodrone-project",
   "private": true,
   "version": "0.0.0",
+  "proxy": "http://localhost:8787",
   "type": "module",
   "scripts": {
     "dev": "vite",
