@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {Map, Marker, useControl, ControlPosition} from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
@@ -98,16 +98,6 @@ function DrawControl(props: any) {
 
       return draw;
     },
-    ({ map }) => {
-      map.on('draw.create', props.onCreate);
-      map.on('draw.update', props.onUpdate);
-      map.on('draw.delete', props.onDelete);
-    },
-    ({ map }) => {
-      map.off('draw.create', props.onCreate);
-      map.off('draw.update', props.onUpdate);
-      map.off('draw.delete', props.onDelete);
-    },
     {
       position: props.position
     }
@@ -119,7 +109,28 @@ function DrawControl(props: any) {
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('sensor');
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null);
+  const [battery, setBattery] = useState("...");
+  const [altitude, setAltitude] = useState("...");
   const drawRef = useRef<any>(null);
+
+  useEffect(() => {
+    const updateTelemetry = async () => {
+      try {
+        const telemetry = await getTelemetry();
+        setBattery(telemetry.battery_level);
+        setAltitude(telemetry.altitude);
+      } catch (e) {
+        console.error("Error with Polling: ", e);
+      }
+    };
+
+    updateTelemetry();
+
+    const telemetry_interval = setInterval(updateTelemetry, 10_000); // 10-second polling
+
+    return () => clearInterval(telemetry_interval);
+
+  }, []);
 
   const flightPaths = [
     { id: 'north-survey', name: 'North Field Survey', date: 'Oct 2, 2024', status: 'completed', path: 'M 15% 20% L 40% 20% L 65% 20% L 65% 35% L 40% 35% L 15% 35% Z' },
@@ -127,31 +138,7 @@ export default function App() {
     { id: 'east-mapping', name: 'East Field Mapping', date: 'Sep 30, 2024', status: 'completed', path: 'M 15% 70% L 40% 70% L 65% 70% L 65% 85% L 40% 85% L 15% 85% Z' }
   ];
 
-  const getSensorColor = (value: number) => {
-    if (value > 0.8) return 'bg-green-500';
-    if (value > 0.6) return 'bg-yellow-500';
-    if (value > 0.4) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
-
-  const getFlightStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'stroke-green-500';
-      case 'aborted': return 'stroke-red-500';
-      case 'in-progress': return 'stroke-blue-500';
-      default: return 'stroke-gray-400';
-    }
-  };
-
-  const onUpdate = (e: any) => {
-    console.log('Polygon coordinates:', e.features[0]);
-  };
-
-  const onCreate = (e: any) => {
-    console.log('Created:', e.features);
-  };
-
-  const saveMission = () => {
+  const saveMission = async () => {
     if (drawRef.current) {
       const coords = drawRef.current.getAll().features[0].geometry.coordinates[0];
 
@@ -160,21 +147,53 @@ export default function App() {
       });
 
       const content = {
-        "missionId": "uuid-1234-5678",
-        "createdAt": "2026-02-05T16:45:00Z", 
+        "missionId": crypto.randomUUID(),
+        "createdAt": new Date().toISOString(), 
         "totalVertices": vertices.length, // one will be a duplicate, so really -> # - 1 unique vertices
         "vertices": vertices
       };
 
-      fetch('http://localhost:8787/flightplan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
-        },
-        body: JSON.stringify(content)
-      });
+      try {
+        const response = await fetch('http://localhost:8787/flightplan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
+          },
+          body: JSON.stringify(content)
+        });
+
+        if (response.ok) {
+          console.log("Flight Plan Sent!");
+        } else {
+          console.error("Error Sending Flight Plan. Status: ", response.status);
+        }
+
+      } catch (e) {
+        console.error(e);
+      }
+
     }
+  };
+
+  const getTelemetry = async () => {
+    const content = { 
+      "user": "1001"
+    };
+
+    const response = await fetch('http://localhost:8787/telemetry', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
+      }
+    });
+
+    const data = await response.json();
+
+    console.log(data);
+
+    return data;
   };
 
   return (
@@ -200,11 +219,11 @@ export default function App() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-gray-500">Battery</span>
-                  <div className="font-semibold">78%</div>
+                  <div className="font-semibold">{battery}%</div>
                 </div>
                 <div>
                   <span className="text-gray-500">Altitude</span>
-                  <div className="font-semibold">120 ft</div>
+                  <div className="font-semibold">{altitude} ft</div>
                 </div>
               </div>
             </div>
@@ -349,8 +368,6 @@ export default function App() {
                   onInstanceUpdate={(instance: any) => {
                     drawRef.current = instance;
                   }}
-                  onCreate={onCreate}
-                  onUpdate={onUpdate}
                 />)}
             </Map>
           </div>
