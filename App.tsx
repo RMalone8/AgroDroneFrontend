@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import {Map, Marker, useControl, ControlPosition} from '@vis.gl/react-maplibre';
+import {Map, Marker, useControl, ControlPosition, Popup} from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
@@ -10,6 +10,16 @@ import type { IControl } from 'maplibre-gl';
 
 type TabType = 'sensor' | 'flights' | 'planning';
 
+const ICON = `M20.2,15.7L20.2,15.7c1.1-1.6,1.8-3.6,1.8-5.7c0-5.6-4.5-10-10-10S2,4.5,2,10c0,2,0.6,3.9,1.6,5.4c0,0.1,0.1,0.2,0.2,0.3
+  c0,0,0.1,0.1,0.1,0.2c0.2,0.3,0.4,0.6,0.7,0.9c2.6,3.1,7.4,7.6,7.4,7.6s4.8-4.5,7.4-7.5c0.2-0.3,0.5-0.6,0.7-0.9
+  C20.1,15.8,20.2,15.8,20.2,15.7z`;
+
+const pinStyle = {
+  cursor: 'pointer',
+  fill: '#d00',
+  stroke: 'none'
+};
+  
 const drawProps = [
   // ACTIVE (being drawn)
   // line stroke
@@ -112,6 +122,8 @@ export default function App() {
   const [selectedFlight, setSelectedFlight] = useState<string | null>(null);
   const [battery, setBattery] = useState("...");
   const [altitude, setAltitude] = useState("...");
+  const [baseStationPos, setBaseStationPos] = useState([0, 0]);
+  const [baseStationPopup, setBaseStationPopup] = useState<string | null>(null);
   const drawRef = useRef<any>(null);
 
   useEffect(() => {
@@ -120,6 +132,7 @@ export default function App() {
         const telemetry = await getTelemetry();
         setBattery(telemetry.battery_level);
         setAltitude(telemetry.altitude);
+        setBaseStationPos(telemetry.base_station_position);
       } catch (e) {
         console.error("Error with Polling: ", e);
       }
@@ -371,6 +384,34 @@ export default function App() {
                   }}
                 />)}
                 <GeocoderControl position="top-left" />
+
+                <Marker
+                key={`base-station`}
+                longitude={baseStationPos[1]}
+                latitude={baseStationPos[0]}
+                anchor='bottom'
+                onClick={e => {
+                  e.originalEvent.stopPropagation();
+                  setBaseStationPopup("hello");
+                }}
+                >
+                  <svg height={20} viewBox="0 0 24 24" style={pinStyle}>
+                    <path d={ICON} />
+                  </svg>
+                </Marker>
+
+                {baseStationPopup && 
+                <Popup
+                anchor='top'
+                longitude={baseStationPos[1]}
+                latitude={baseStationPos[0]}
+                onClose={() => setBaseStationPopup(null)}
+                >
+                  <div>
+                  Base Station
+                  </div>
+                  </Popup>
+                  }
             </Map>
           </div>
         </div>
