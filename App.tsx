@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import {Map, Marker, useControl, ControlPosition} from '@vis.gl/react-maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import MapboxDraw from '@mapbox/mapbox-gl-draw'
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import GeocoderControl from './Geocoder.tsx';
 import type { IControl } from 'maplibre-gl';
 //import ControlPanel from './control-panel';
 //import { MapProps } from '@vis.gl/react-maplibre';
@@ -369,6 +370,7 @@ export default function App() {
                     drawRef.current = instance;
                   }}
                 />)}
+                <GeocoderControl position="top-left" />
             </Map>
           </div>
         </div>
