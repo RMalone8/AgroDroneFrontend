@@ -124,9 +124,11 @@ export default function App() {
   const [altitude, setAltitude] = useState("...");
   const [baseStationPos, setBaseStationPos] = useState([0, 0]);
   const [baseStationPopup, setBaseStationPopup] = useState<string | null>(null);
+  const [imageURL, setImageURL] = useState("");
   const drawRef = useRef<any>(null);
 
   useEffect(() => {
+    // telemetry
     const updateTelemetry = async () => {
       try {
         const telemetry = await getTelemetry();
@@ -142,7 +144,29 @@ export default function App() {
 
     const telemetry_interval = setInterval(updateTelemetry, 10_000); // 10-second polling
 
-    return () => clearInterval(telemetry_interval);
+    const fetchMosaic = async () => {
+      try {
+        const response = await fetch("http://localhost:8787/mosaic", {
+          method: "GET",
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
+          }});
+          const imageBlob = await response.blob();
+
+          const imageURL = URL.createObjectURL(imageBlob);
+          
+          setImageURL(imageURL);
+        } catch (e) {
+          console.log("Mosaic GET Error: ", e);
+        }
+    };
+
+    fetchMosaic();
+
+    return () => {
+      clearInterval(telemetry_interval);
+      if (imageURL) URL.revokeObjectURL(imageURL);
+    }
 
   }, []);
 
@@ -313,6 +337,9 @@ export default function App() {
               </button>
             </div>
           </div>
+          <img src={imageURL}
+            alt="Pi Mosaic">
+          </img>
         </div>
 
         {/* Main Content */}
