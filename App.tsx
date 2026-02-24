@@ -186,8 +186,8 @@ export default function App() {
 
       const content = {
         "missionId": crypto.randomUUID(),
-        "createdAt": new Date().toISOString(), 
-        "totalVertices": vertices.length, // one will be a duplicate, so really -> # - 1 unique vertices
+        "createdAt": new Date().toISOString(),
+        "totalVertices": vertices.length - 1, // one will be a duplicate, so really -> # - 1 unique vertices
         "vertices": vertices
       };
 
