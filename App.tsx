@@ -178,7 +178,7 @@ export default function App() {
 
   const saveMission = async () => {
     if (drawRef.current) {
-      const coords = drawRef.current.getAll().features[0].geometry.coordinates[0];
+      const coords = drawRef.current.getSelected().features[0].geometry.coordinates[0];
 
       const vertices = coords.map((coord: number[], index: number) => {
         return {"order": index, "lng": coord[0], "lat": coord[1]}
@@ -210,7 +210,7 @@ export default function App() {
       } catch (e) {
         console.error(e);
       }
-
+      
     }
   };
 
