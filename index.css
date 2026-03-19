@@ -1,10 +1,30 @@
-.mapboxgl-ctrl-group {
-  pointer-events: auto; 
-  background-color: rgb(162, 230, 148);
+.maplibregl-ctrl-top-left {
+  width: 100%;
+  padding: 4px;
+  display: flex !important; /* Force flexbox */
+  flex-direction: row;     /* Horizontal layout */
+  pointer-events: none;    /* Let clicks pass through the "empty" space */
+  
+}
+
+.mapboxgl-ctrl-group.mapboxgl-ctrl {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+
+  pointer-events: auto;
+  margin-left: auto;
+  margin-right: auto;
+  height: fit-content;
+  /* Adjusting for the width of the search bar to ensure true center */
+  border-radius: 4px;
+  display: flex;
+  background-color: rgb(162, 230, 148, 0.5);
 }
 
 /* Target the main geocoder container */
 .maplibregl-ctrl-geocoder {
+  left: 10px;
   width: auto; /* Make it wider */
   max-width: 600px;
 }
@@ -14,7 +34,7 @@
   font-size: 18px;
   height: 45px;
   caret-color: rgb(1, 52, 23);
-  color: rgb(0, 102, 19);
+  color: black;
   padding: 10px 10px !important; /* adjust for the search icon */
 }
 
@@ -34,9 +54,5 @@
 
 .maplibregl-ctrl-geocoder--icon {
   width: 10 px;
-}
-
-
-.maplibregl-ctrl-geocoder--icon-search {
-  width: 10 px;
+  opacity: 0;
 }

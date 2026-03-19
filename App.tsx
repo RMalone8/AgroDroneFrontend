@@ -237,11 +237,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">AgroDrone Control System</h1>
-          <p className="text-gray-600">Semi-autonomous agricultural monitoring</p>
+        <div className="px-6 flex items-center gap-4">
+        <img src={imageURL}
+            alt="Logo"
+            className="h-20 w-auto object-contain">
+          </img>
+          <div className="py-4">
+            <h1 className="text-2xl font-bold text-gray-900">AgroDrone Control System</h1>
+            <p className="text-gray-600">Semi-autonomous agricultural monitoring</p>
+          </div>
         </div>
+        
       </header>
+      
 
       <div className="flex h-[calc(100vh-80px)]">
         {/* Sidebar */}
@@ -302,25 +310,33 @@ export default function App() {
             </div>
           )}
 
-          {/* System Health */}
+          {/* System Telemetry */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">System Health</h3>
+            <h3 className="text-lg font-semibold mb-3">System Telemetry</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>Overall Health</span>
-                <span className="font-semibold text-green-600">85%</span>
+                <span>Satellites Visible </span>
+                <span className="font-semibold text-green-600">21</span>
               </div>
               <div className="flex justify-between">
-                <span>Battery Health</span>
-                <span className="text-green-600">Good</span>
+                <span>GPS HDOP</span>
+                <span className="font-semibold text-green-600">0.15</span>
               </div>
               <div className="flex justify-between">
-                <span>Camera System</span>
-                <span className="text-green-600">Excellent</span>
+                <span>Heading</span>
+                <span className="text-black-600">180.57</span>
               </div>
               <div className="flex justify-between">
-                <span>GPS Module</span>
-                <span className="text-green-600">Good</span>
+                <span>VX</span>
+                <span className="text-black-600">0</span>
+              </div>
+              <div className="flex justify-between">
+                <span>VY</span>
+                <span className="text-black-600">0</span>
+              </div>
+              <div className="flex justify-between">
+                <span>VZ</span>
+                <span className="text-black-600">0</span>
               </div>
             </div>
           </div>
@@ -337,9 +353,6 @@ export default function App() {
               </button>
             </div>
           </div>
-          <img src={imageURL}
-            alt="Pi Mosaic">
-          </img>
         </div>
 
         {/* Main Content */}
