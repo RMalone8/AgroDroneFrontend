@@ -31,9 +31,9 @@ export function useDroneData() {
 
     fetchTelemetry();
     fetchMosaic();
-    const interval = setInterval(fetchTelemetry, 10000);
+    //const interval = setInterval(fetchTelemetry, 10000);
 
-    return () => clearInterval(interval);
+    //return () => clearInterval(interval);
   }, []);
 
   return { battery, altitude, baseStationPos, imageURL };

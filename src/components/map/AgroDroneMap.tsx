@@ -25,7 +25,7 @@ export function AgroDroneMap({ activeTab, baseStationPos, drawRef }: MapViewerPr
       mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
     >
       {/* Draw Controls only active in Planning mode */}
-      {activeTab === 'planning' && (
+      {(activeTab === 'planning' || activeTab === 'flights') && (
         <DrawControl
           position="top-left"
           styles={drawProps}

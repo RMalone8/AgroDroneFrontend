@@ -1,0 +1,95 @@
+import { MutableRefObject } from 'react';
+
+export const saveFlightPlan = async (drawRef: MutableRefObject<any>) => {
+  if (drawRef.current) {
+    const coords = drawRef.current.getSelected().features[0].geometry.coordinates[0];
+
+    const vertices = coords.map((coord: number[], index: number) => {
+      return {"order": index, "lng": coord[0], "lat": coord[1]}
+    });
+
+    const content = {
+      "missionId": crypto.randomUUID(),
+      "createdAt": new Date().toISOString(),
+      "totalVertices": vertices.length - 1, // one will be a duplicate, so really -> # - 1 unique vertices
+      "vertices": vertices
+    };
+
+    try {
+      const response = await fetch('http://localhost:8787/flightplan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
+        },
+        body: JSON.stringify(content)
+      });
+
+      if (response.ok) {
+        console.log("Flight Plan Sent!");
+      } else {
+        console.error("Error Sending Flight Plan. Status: ", response.status);
+      }
+
+    } catch (e) {
+      console.error(e);
+    }
+  }
+};
+
+export async function getAllFlightPlans() {
+  try {
+      const response = await fetch('http://localhost:8787/flightplan/all', {
+          headers: { 'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}` }
+        });
+
+        const data = await response.json();
+
+        return data;
+        
+  } catch (e) {
+      console.log("Error Retrieving All Flight Plans: ", e);
+  }
+};
+
+export async function selectFlightPlan(fp: any, drawRef: MutableRefObject<any>) {
+  const geojsonFeature = {
+    id: fp.missionId, // Set the ID so we can track it
+    type: 'Feature',
+    properties: {
+      createdAt: fp.createdAt
+    },
+    geometry: {
+      type: 'Polygon',
+      coordinates: [fp.vertices.map((v: any) => [v.lng, v.lat])] // Polygons require nested arrays
+    }
+  };
+  drawRef.current.deleteAll();
+  drawRef.current.add(geojsonFeature);
+}
+
+export async function deleteFlightPlan(fp: any, flightplans: any, drawRef: MutableRefObject<any>, setFlightPlans: any) {
+  try {
+    if (drawRef.current) {
+      drawRef.current.delete(fp.missionId);
+    }
+
+    const response = await fetch(`http://localhost:8787/flightplan/${fp.missionId}`, {
+      method: 'DELETE',
+      headers: { 
+        'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}` 
+      }
+    });
+
+    if (response.ok) {
+      setFlightPlans((prev: any) => prev.filter((plan: { missionId: any; }) => plan.missionId !== fp.missionId));
+      console.log("Successfully deleted flight plan ", fp.missionId);
+    } else {
+      console.log("Response Code not OK: ", response.status);
+    }
+
+  } catch (e) {
+    console.log("Error deleting flight plan: ", e);
+  }
+
+}
