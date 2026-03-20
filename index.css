@@ -36,6 +36,8 @@
   caret-color: rgb(1, 52, 23);
   color: black;
   padding: 10px 10px !important; /* adjust for the search icon */
+  border: 3px solid rgba(162, 230, 148, 0.25);
+  border-radius: 4px;
 }
 
 .maplibregl-ctrl-geocoder .suggestions {

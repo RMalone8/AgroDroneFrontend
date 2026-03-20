@@ -22,6 +22,6 @@
 
     "types": ["vite/client"]
   },
-  "include": ["**/*.ts", "**/*.tsx", "Geocoder.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "src/components/map/Geocoder.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,238 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
-import {Map, Marker, useControl, ControlPosition, Popup} from '@vis.gl/react-maplibre';
+import { useState, useRef } from 'react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import MapboxDraw from '@mapbox/mapbox-gl-draw';
-import GeocoderControl from './Geocoder.tsx';
-import type { IControl } from 'maplibre-gl';
-//import ControlPanel from './control-panel';
-//import { MapProps } from '@vis.gl/react-maplibre';
+import { useDroneData } from './src/hooks/useDroneData.ts';
+import { Sidebar } from './src/components/ui/Sidebar.tsx';
+import { saveMission } from './src/components/map/SaveMission.tsx';
+import { AgroDroneMap } from './src/components/map/AgroDroneMap.tsx';
 
 type TabType = 'sensor' | 'flights' | 'planning';
 
-const ICON = `M20.2,15.7L20.2,15.7c1.1-1.6,1.8-3.6,1.8-5.7c0-5.6-4.5-10-10-10S2,4.5,2,10c0,2,0.6,3.9,1.6,5.4c0,0.1,0.1,0.2,0.2,0.3
-  c0,0,0.1,0.1,0.1,0.2c0.2,0.3,0.4,0.6,0.7,0.9c2.6,3.1,7.4,7.6,7.4,7.6s4.8-4.5,7.4-7.5c0.2-0.3,0.5-0.6,0.7-0.9
-  C20.1,15.8,20.2,15.8,20.2,15.7z`;
-
-const pinStyle = {
-  cursor: 'pointer',
-  fill: '#d00',
-  stroke: 'none'
-};
-  
-const drawProps = [
-  // ACTIVE (being drawn)
-  // line stroke
-  {
-      "id": "gl-draw-line",
-      "type": "line",
-      "filter": ["all", ["==", "$type", "LineString"]],
-      "layout": {
-        "line-cap": "round",
-        "line-join": "round"
-      },
-      "paint": {
-        "line-color": "#D20C0C",
-        "line-dasharray": [0.2, 2],
-        "line-width": 2
-      }
-  },
-  // polygon fill
-  {
-    "id": "gl-draw-polygon-fill",
-    "type": "fill",
-    "filter": ["all", ["==", "$type", "Polygon"]],
-    "paint": {
-      "fill-color": "#D20C0C",
-      "fill-outline-color": "#D20C0C",
-      "fill-opacity": 0.1
-    }
-  },
-  // polygon mid points
-  {
-    'id': 'gl-draw-polygon-midpoint',
-    'type': 'circle',
-    'filter': ['all',
-      ['==', '$type', 'Point'],
-      ['==', 'meta', 'midpoint']],
-    'paint': {
-      'circle-radius': 3,
-      'circle-color': '#fbb03b'
-    }
-  },
-  // polygon outline stroke
-  // This doesn't style the first edge of the polygon, which uses the line stroke styling instead
-  {
-    "id": "gl-draw-polygon-stroke-active",
-    "type": "line",
-    "filter": ["all", ["==", "$type", "Polygon"]],
-    "layout": {
-      "line-cap": "round",
-      "line-join": "round"
-    },
-    "paint": {
-      "line-color": "#D20C0C",
-      "line-dasharray": [0.2, 2],
-      "line-width": 2
-    }
-  },
-  // vertex point halos
-  {
-    "id": "gl-draw-polygon-and-line-vertex-halo-active",
-    "type": "circle",
-    "filter": ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"]],
-    "paint": {
-      "circle-radius": 5,
-      "circle-color": "#FFF"
-    }
-  },
-  // vertex points
-  {
-    "id": "gl-draw-polygon-and-line-vertex-active",
-    "type": "circle",
-    "filter": ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"]],
-    "paint": {
-      "circle-radius": 3,
-      "circle-color": "#D20C0C",
-    }
-  }
-];
-
-function DrawControl(props: any) {
-  useControl(
-    () => {
-      const draw = new MapboxDraw(props) as unknown as IControl;
-      
-      if (props.onInstanceUpdate) {
-        props.onInstanceUpdate(draw);
-      }
-
-      return draw;
-    },
-    {
-      position: props.position
-    }
-  );
-
-  return null;
-}
-
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('sensor');
-  const [selectedFlight, setSelectedFlight] = useState<string | null>(null);
-  const [battery, setBattery] = useState("...");
-  const [altitude, setAltitude] = useState("...");
-  const [baseStationPos, setBaseStationPos] = useState([0, 0]);
-  const [baseStationPopup, setBaseStationPopup] = useState<string | null>(null);
-  const [imageURL, setImageURL] = useState("");
   const drawRef = useRef<any>(null);
 
-  useEffect(() => {
-    // telemetry
-    const updateTelemetry = async () => {
-      try {
-        const telemetry = await getTelemetry();
-        setBattery(telemetry.battery_level);
-        setAltitude(telemetry.altitude);
-        setBaseStationPos(telemetry.base_station_position);
-      } catch (e) {
-        console.error("Error with Polling: ", e);
-      }
-    };
-
-    updateTelemetry();
-
-    const telemetry_interval = setInterval(updateTelemetry, 10_000); // 10-second polling
-
-    const fetchMosaic = async () => {
-      try {
-        const response = await fetch("http://localhost:8787/mosaic", {
-          method: "GET",
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
-          }});
-          const imageBlob = await response.blob();
-
-          const imageURL = URL.createObjectURL(imageBlob);
-          
-          setImageURL(imageURL);
-        } catch (e) {
-          console.log("Mosaic GET Error: ", e);
-        }
-    };
-
-    fetchMosaic();
-
-    return () => {
-      clearInterval(telemetry_interval);
-      if (imageURL) URL.revokeObjectURL(imageURL);
-    }
-
-  }, []);
-
-  const flightPaths = [
-    { id: 'north-survey', name: 'North Field Survey', date: 'Oct 2, 2024', status: 'completed', path: 'M 15% 20% L 40% 20% L 65% 20% L 65% 35% L 40% 35% L 15% 35% Z' },
-    { id: 'south-check', name: 'South Field Check', date: 'Oct 1, 2024', status: 'aborted', path: 'M 15% 45% L 40% 45% L 65% 45% L 65% 60% L 40% 60% L 15% 60% Z' },
-    { id: 'east-mapping', name: 'East Field Mapping', date: 'Sep 30, 2024', status: 'completed', path: 'M 15% 70% L 40% 70% L 65% 70% L 65% 85% L 40% 85% L 15% 85% Z' }
-  ];
-
-  const saveMission = async () => {
-    if (drawRef.current) {
-      const coords = drawRef.current.getSelected().features[0].geometry.coordinates[0];
-
-      const vertices = coords.map((coord: number[], index: number) => {
-        return {"order": index, "lng": coord[0], "lat": coord[1]}
-      });
-
-      const content = {
-        "missionId": crypto.randomUUID(),
-        "createdAt": new Date().toISOString(),
-        "totalVertices": vertices.length - 1, // one will be a duplicate, so really -> # - 1 unique vertices
-        "vertices": vertices
-      };
-
-      try {
-        const response = await fetch('http://localhost:8787/flightplan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
-          },
-          body: JSON.stringify(content)
-        });
-
-        if (response.ok) {
-          console.log("Flight Plan Sent!");
-        } else {
-          console.error("Error Sending Flight Plan. Status: ", response.status);
-        }
-
-      } catch (e) {
-        console.error(e);
-      }
-      
-    }
-  };
-
-  const getTelemetry = async () => {
-    const content = { 
-      "user": "1001"
-    };
-
-    const response = await fetch('http://localhost:8787/telemetry', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}`
-      }
-    });
-
-    const data = await response.json();
-
-    console.log(data);
-
-    return data;
-  };
+  const { battery, altitude, baseStationPos, imageURL } = useDroneData();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -247,113 +27,14 @@ export default function App() {
             <p className="text-gray-600">Semi-autonomous agricultural monitoring</p>
           </div>
         </div>
-        
       </header>
-      
 
       <div className="flex h-[calc(100vh-80px)]">
         {/* Sidebar */}
-        <div className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
-          {/* Drone Status */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Drone Status</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm">Active - Field Monitoring</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-gray-500">Battery</span>
-                  <div className="font-semibold">{battery}%</div>
-                </div>
-                <div>
-                  <span className="text-gray-500">Altitude</span>
-                  <div className="font-semibold">{altitude} ft</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Live Feed */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Live Feed</h3>
-            <div className="h-32 bg-gray-900 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm">● LIVE FEED</span>
-            </div>
-          </div>
-
-          {/* Flight Details */}
-          {selectedFlight && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3">Flight Details</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Flight</span>
-                  <span className="font-medium">{flightPaths.find(f => f.id === selectedFlight)?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Date</span>
-                  <span className="font-medium">{flightPaths.find(f => f.id === selectedFlight)?.date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Status</span>
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    flightPaths.find(f => f.id === selectedFlight)?.status === 'completed' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-red-100 text-red-700'
-                  }`}>
-                    {flightPaths.find(f => f.id === selectedFlight)?.status}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* System Telemetry */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">System Telemetry</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Satellites Visible </span>
-                <span className="font-semibold text-green-600">21</span>
-              </div>
-              <div className="flex justify-between">
-                <span>GPS HDOP</span>
-                <span className="font-semibold text-green-600">0.15</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Heading</span>
-                <span className="text-black-600">180.57</span>
-              </div>
-              <div className="flex justify-between">
-                <span>VX</span>
-                <span className="text-black-600">0</span>
-              </div>
-              <div className="flex justify-between">
-                <span>VY</span>
-                <span className="text-black-600">0</span>
-              </div>
-              <div className="flex justify-between">
-                <span>VZ</span>
-                <span className="text-black-600">0</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Emergency Controls */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Emergency Controls</h3>
-            <div className="space-y-2">
-              <button className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-semibold transition-colors">
-                ABORT FLIGHT
-              </button>
-              <button className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors">
-                Emergency Land
-              </button>
-            </div>
-          </div>
-        </div>
+        <Sidebar
+            battery={battery}
+            altitude={altitude}
+        />
 
         {/* Main Content */}
         <div className="flex-1  flex flex-col min-h-0">
@@ -396,63 +77,16 @@ export default function App() {
           <div className="flex-1 relative z-0"> {/* The Map container */}
             {/* Mission Buttons */}
               {activeTab === 'planning' && (<button
-              onClick={saveMission}
+              onClick={() => saveMission(drawRef)}
               className="absolute top-1 right-1 z-50 bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
               >
                 Save Mission
               </button>)}
-            <Map
-              initialViewState={{
-                latitude: 42.35316,
-                longitude: -71.11777,
-                zoom: 12,
-                pitch: 0
-              }}
-              style={{ width: '100%', height: '100%' }}
-              mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
-              >
-                {activeTab === 'planning' && (<DrawControl
-                  position="top-left"
-                  styles={drawProps}
-                  displayControlsDefault={false}
-                  controls={{
-                    polygon: true,
-                    trash: true,
-                  }}
-                  onInstanceUpdate={(instance: any) => {
-                    drawRef.current = instance;
-                  }}
-                />)}
-                <GeocoderControl position="top-left" />
-
-                <Marker
-                key={`base-station`}
-                longitude={baseStationPos[1]}
-                latitude={baseStationPos[0]}
-                anchor='bottom'
-                onClick={e => {
-                  e.originalEvent.stopPropagation();
-                  setBaseStationPopup("hello");
-                }}
-                >
-                  <svg height={20} viewBox="0 0 24 24" style={pinStyle}>
-                    <path d={ICON} />
-                  </svg>
-                </Marker>
-
-                {baseStationPopup && 
-                <Popup
-                anchor='top'
-                longitude={baseStationPos[1]}
-                latitude={baseStationPos[0]}
-                onClose={() => setBaseStationPopup(null)}
-                >
-                  <div>
-                  Base Station
-                  </div>
-                  </Popup>
-                  }
-            </Map>
+              <AgroDroneMap
+                activeTab={activeTab} 
+                baseStationPos={baseStationPos}
+                drawRef={drawRef}
+              />
           </div>
         </div>
       </div>
