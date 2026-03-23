@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import mqtt from 'mqtt';
+import { DroneTelemetry } from '../constants/types';
 
 const client = mqtt.connect('ws://localhost:9001', {
   clean: true
