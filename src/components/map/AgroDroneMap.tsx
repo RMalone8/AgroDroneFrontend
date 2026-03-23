@@ -1,16 +1,17 @@
 import { Map, Marker, Popup } from '@vis.gl/react-maplibre';
 import { DrawControl } from './DrawControl';
 import GeocoderControl from './Geocoder';
-import { ICON, drawProps, pinStyle } from '../../constants/mapStyles';
+import { ICON, drawProps, dronePinStyle, pinStyle } from '../../constants/mapStyles';
 import { useState } from 'react';
+import { DroneTelemetry } from '../../constants/types';
 
 interface MapViewerProps {
   activeTab: string;
-  baseStationPos: number[];
+  droneData: DroneTelemetry
   drawRef: React.MutableRefObject<any>;
 }
 
-export function AgroDroneMap({ activeTab, baseStationPos, drawRef }: MapViewerProps) {
+export function AgroDroneMap({ activeTab, droneData, drawRef }: MapViewerProps) {
   const [baseStationPopup, setBaseStationPopup] = useState<boolean>(false);
 
   return (
@@ -43,9 +44,10 @@ export function AgroDroneMap({ activeTab, baseStationPos, drawRef }: MapViewerPr
       <GeocoderControl position="top-left" />
 
       {/* Base Station Marker */}
+      {droneData.baseStationPos && droneData.baseStationPos.length >= 2 ? (
       <Marker
-        longitude={baseStationPos[1]}
-        latitude={baseStationPos[0]}
+        longitude={droneData.baseStationPos[1]}
+        latitude={droneData.baseStationPos[0]}
         anchor="bottom"
         onClick={(e) => {
           e.originalEvent.stopPropagation();
@@ -56,17 +58,32 @@ export function AgroDroneMap({ activeTab, baseStationPos, drawRef }: MapViewerPr
           <path d={ICON} />
         </svg>
       </Marker>
-
+      ) : null},
+      {Number(droneData.droneLat) && Number(droneData.droneLng) ? (
+        <Marker
+        longitude={Number(droneData.droneLng)}
+        latitude={Number(droneData.droneLat)}
+        anchor="bottom"
+        onClick={(e) => {
+          e.originalEvent.stopPropagation();
+        }}
+      >
+        <svg height={20} viewBox="0 0 24 24" style={dronePinStyle}>
+          <path d={ICON} />
+        </svg>
+      </Marker>
+      ) : null}
       {/* Base Station Popup */}
       {baseStationPopup && (
         <Popup
           anchor="top"
-          longitude={baseStationPos[1]}
-          latitude={baseStationPos[0]}
+          longitude={droneData.baseStationPos?.[1] ?? 0}
+          latitude={droneData.baseStationPos?.[0] ?? 0}
           onClose={() => setBaseStationPopup(false)}
         >
           <div className="p-1 font-sans text-sm font-semibold">Base Station</div>
         </Popup>
+        
       )}
     </Map>
   );

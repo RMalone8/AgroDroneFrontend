@@ -16,7 +16,7 @@ export const saveFlightPlan = async (drawRef: MutableRefObject<any>) => {
     };
 
     try {
-      const response = await fetch('http://localhost:8787/flightplan', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/flightplan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,16 +39,17 @@ export const saveFlightPlan = async (drawRef: MutableRefObject<any>) => {
 
 export async function getAllFlightPlans() {
   try {
-      const response = await fetch('http://localhost:8787/flightplan/all', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/flightplan/all`, {
           headers: { 'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}` }
         });
 
-        const data = await response.json();
+        if (!response.ok) return {flightplans: [], metadata: {}};
 
-        return data;
+        return await response.json();
         
   } catch (e) {
       console.log("Error Retrieving All Flight Plans: ", e);
+      return {flightplans: [], metadata: {}};
   }
 };
 
@@ -74,7 +75,7 @@ export async function deleteFlightPlan(fp: any, flightplans: any, drawRef: Mutab
       drawRef.current.delete(fp.missionId);
     }
 
-    const response = await fetch(`http://localhost:8787/flightplan/${fp.missionId}`, {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/flightplan/${fp.missionId}`, {
       method: 'DELETE',
       headers: { 
         'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}` 

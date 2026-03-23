@@ -58,36 +58,47 @@ const geocoderApi: MaplibreGeocoderApi = {
 
 /* eslint-disable complexity,max-statements */
 export default function GeocoderControl(props: GeocoderControlProps) {
-  const [marker, setMarker] = React.useState<React.ReactElement | null>(null);
+  const {
+    marker: useMarker = true,
+    onLoading = () => {},
+    onResults = () => {},
+    onResult = () => {},
+    onError = () => {},
+    position,
+    ...otherOptions // Captures proximity, zoom, etc.
+  } = props;
+
+  const [markerElement, setMarkerElement] = React.useState<React.ReactElement | null>(null);
 
   const geocoder = useControl<MaplibreGeocoder>(
     ({mapLib}) => {
       const ctrl = new MaplibreGeocoder(geocoderApi, {
-        ...props,
+        ...otherOptions,
         marker: false,
         maplibregl: mapLib as any
       });
       ctrl.on('loading', (e) => props.onLoading?.(e));
       ctrl.on('results', (e) => props.onResults?.(e));
       ctrl.on('result', evt => {
-        props.onResult?.(evt);
+        onResult(evt);
 
         const {result} = evt;
         const location =
           result &&
           (result.center || (result.geometry?.type === 'Point' && result.geometry.coordinates));
-        if (location && props.marker) {
-          const markerProps = typeof props.marker === 'object' ? props.marker : {};
-          setMarker(<Marker {...markerProps} longitude={location[0]} latitude={location[1]} />);
+          
+        if (location && useMarker) {
+          const markerProps = typeof useMarker === 'object' ? useMarker : {};
+          setMarkerElement(<Marker {...markerProps} longitude={location[0]} latitude={location[1]} />);
         } else {
-          setMarker(null);
+          setMarkerElement(null);
         }
       });
-      ctrl.on('error', (e) => props.onError?.(e));
+      ctrl.on('error', (e) => onError);
       return ctrl;
     },
     {
-      position: props.position
+      position: position
     }
   );
 
@@ -142,15 +153,5 @@ export default function GeocoderControl(props: GeocoderControlProps) {
     //   geocoder.setWorldview(props.worldview);
     // }
   }
-  return marker;
+  return markerElement;
 }
-
-const noop = () => {};
-
-GeocoderControl.defaultProps = {
-  marker: true,
-  onLoading: noop,
-  onResults: noop,
-  onResult: noop,
-  onError: noop
-};

@@ -1,18 +1,8 @@
-interface SidebarProps {
-  activeTab: string;
-  battery: string;
-  altitude: string;
-  flightplanData: any;
-  setFlightplans: any;
-  drawRef: any;
-  onSelectFlightPlan: (fp: any, drawRef: any) => void;
-  onDeleteFlightPlan: (fp: any, flightplans: any, drawRef: any, setFlightplans: any) => void;
-}
+import { SidebarProps } from '../../constants/types';
 
 export function Sidebar({
   activeTab,
-  battery,
-  altitude,
+  telemetry,
   flightplanData,
   setFlightplans,
   onSelectFlightPlan,
@@ -37,11 +27,11 @@ export function Sidebar({
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-500">Battery</span>
-                    <div className="font-semibold">{battery}%</div>
+                    <div className="font-semibold">{telemetry.battery ?? "---"}%</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Altitude</span>
-                    <div className="font-semibold">{altitude} ft</div>
+                    <div className="font-semibold">{telemetry.altitude ?? "---"} ft</div>
                   </div>
                 </div>
               </div>
@@ -59,20 +49,20 @@ export function Sidebar({
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3">System Telemetry</h3>
               <div className="space-y-2 text-sm">
-                <TelemetryRow label="Satellites Visible" value="21" color="text-green-600" />
-                <TelemetryRow label="GPS HDOP" value="0.15" color="text-green-600" />
-                <TelemetryRow label="Heading" value="180.57" />
-                <TelemetryRow label="VX" value="0" />
-                <TelemetryRow label="VY" value="0" />
-                <TelemetryRow label="VZ" value="0" />
+                <TelemetryRow label="Satellites Visible" value={telemetry.satellitesVisible ?? "---"} color="text-green-600" />
+                <TelemetryRow label="GPS HDOP" value={telemetry.hdop ?? "---"} color="text-green-600" />
+                <TelemetryRow label="Heading" value={telemetry.heading ?? "---"} />
+                <TelemetryRow label="VX" value={telemetry.velocity?.[0] ?? "---"} />
+                <TelemetryRow label="VY" value={telemetry.velocity?.[1] ?? "---"} />
+                <TelemetryRow label="VZ" value={telemetry.velocity?.[2] ?? "---"} />
               </div>
             </div>
           </>
         ) : (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Flight Plan History ({flightplanData["flightplans"]?.length || 0})</h3>
+            <h3 className="text-lg font-semibold mb-3">Flight Plan History ({flightplanData?.["flightplans"]?.length || 0})</h3>
             <div className="space-y-2">
-              {flightplanData["flightplans"]?.map((fp: any) => (
+              {flightplanData?.["flightplans"]?.map((fp: any) => (
                 <div className="flex" key={fp.missionId}>
                 <button
                   onClick={() => onSelectFlightPlan(fp, drawRef)}

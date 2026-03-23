@@ -7,6 +7,12 @@ export const pinStyle = {
   fill: '#d00',
   stroke: 'none'
 };
+
+export const dronePinStyle = {
+  cursor: 'pointer',
+  fill: '#0d0',
+  stroke: 'none'
+};
   
 export const drawProps = [
   // ACTIVE (being drawn)
