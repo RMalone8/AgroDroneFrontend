@@ -18,7 +18,6 @@ type GeocoderControlProps = Omit<MaplibreGeocoderOptions, 'maplibregl' | 'marker
   onError?: (e: object) => void;
 };
 
-/* eslint-disable camelcase */
 const geocoderApi: MaplibreGeocoderApi = {
   forwardGeocode: async config => {
     const features = [];
@@ -46,7 +45,7 @@ const geocoderApi: MaplibreGeocoderApi = {
         features.push(point);
       }
     } catch (e) {
-      console.error(`Failed to forwardGeocode with error: ${e}`); // eslint-disable-line
+      console.error(`Failed to forwardGeocode with error: ${e}`);
     }
 
     return {
@@ -56,7 +55,6 @@ const geocoderApi: MaplibreGeocoderApi = {
   }
 };
 
-/* eslint-disable complexity,max-statements */
 export default function GeocoderControl(props: GeocoderControlProps) {
   const {
     marker: useMarker = true,

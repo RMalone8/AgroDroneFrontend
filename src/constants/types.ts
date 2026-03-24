@@ -21,4 +21,5 @@ export interface DroneTelemetry {
     drawRef: any;
     onSelectFlightPlan: (fp: any, drawRef: any) => void;
     onDeleteFlightPlan: (fp: any, flightplans: any, drawRef: any, setFlightplans: any) => void;
+    onActivateFlightPlan: (missionId: string) => void;
   }

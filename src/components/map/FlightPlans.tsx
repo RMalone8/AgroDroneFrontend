@@ -69,7 +69,27 @@ export async function selectFlightPlan(fp: any, drawRef: MutableRefObject<any>) 
   drawRef.current.add(geojsonFeature);
 }
 
-export async function deleteFlightPlan(fp: any, flightplans: any, drawRef: MutableRefObject<any>, setFlightPlans: any) {
+export async function activateFlightPlan(missionId: string) {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/flightplan/${missionId}/activate`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${import.meta.env.VITE_DEVICE_TOKEN}` }
+    });
+
+    if (response.ok) {
+      console.log("Flight plan activated:", missionId);
+      return true;
+    } else {
+      console.error("Error activating flight plan. Status:", response.status);
+      return false;
+    }
+  } catch (e) {
+    console.error("Error activating flight plan:", e);
+    return false;
+  }
+}
+
+export async function deleteFlightPlan(fp: any, _flightplans: any, drawRef: MutableRefObject<any>, setFlightPlans: any) {
   try {
     if (drawRef.current) {
       drawRef.current.delete(fp.missionId);
@@ -83,7 +103,7 @@ export async function deleteFlightPlan(fp: any, flightplans: any, drawRef: Mutab
     });
 
     if (response.ok) {
-      setFlightPlans((prev: any) => prev.filter((plan: { missionId: any; }) => plan.missionId !== fp.missionId));
+      setFlightPlans((prev: any) => ({ ...prev, flightplans: prev.flightplans.filter((plan: { missionId: any }) => plan.missionId !== fp.missionId) }));
       console.log("Successfully deleted flight plan ", fp.missionId);
     } else {
       console.log("Response Code not OK: ", response.status);

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { SidebarProps } from '../../constants/types';
+import { sendEmergencySignal } from '../../hooks/sendEmergencySignal';
 
 export function Sidebar({
   activeTab,
@@ -7,11 +9,76 @@ export function Sidebar({
   setFlightplans,
   onSelectFlightPlan,
   onDeleteFlightPlan,
+  onActivateFlightPlan,
   drawRef
 }: SidebarProps) {
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
   return (
     <div className="w-80 bg-white border-r border-gray-200 p-6 flex flex-col h-full overflow-hidden">
-      
+
+      {/* Activate confirmation modal */}
+      {confirmingId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="font-semibold text-gray-900 mb-2">Set Active Mission</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Set mission <span className="font-mono font-bold">{confirmingId.slice(0, 8)}</span> as
+              the active flight plan? This will publish it to the drone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmingId(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onActivateFlightPlan(confirmingId);
+                  setConfirmingId(null);
+                }}
+                className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmingDeleteId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="font-semibold text-gray-900 mb-2">Delete Flight Plan</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Permanently delete mission <span className="font-mono font-bold">{confirmingDeleteId.slice(0, 8)}</span>?
+              This cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmingDeleteId(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const fp = flightplanData["flightplans"].find((p: any) => p.missionId === confirmingDeleteId);
+                  if (fp) onDeleteFlightPlan(fp, flightplanData["flightplans"], drawRef, setFlightplans);
+                  setConfirmingDeleteId(null);
+                }}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
         {activeTab === 'planning' || activeTab === 'sensor' ? (
@@ -62,34 +129,39 @@ export function Sidebar({
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3">Flight Plan History ({flightplanData?.["flightplans"]?.length || 0})</h3>
             <div className="space-y-2">
-              {flightplanData?.["flightplans"]?.map((fp: any) => (
-                <div className="flex" key={fp.missionId}>
-                <button
-                  onClick={() => onSelectFlightPlan(fp, drawRef)}
-                  className="w-full text-left p-3 border rounded hover:bg-blue-50 transition-all group border-gray-100 hover:border-blue-200 flex justify-between items-center"
-                >
-                  <div className="flex-1">
-                  <div className="font-medium text-sm text-blue-600 group-hover:text-blue-800">
-                    ID: {fp.missionId.slice(0, 8)}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(fp.createdAt).toLocaleString()}
-                  </div>
-                  </div>
-                  <div className={`rounded-full ${fp.missionId === flightplanData["metadata"].currentFlightPlan ? 'w-3 h-3 bg-green-500 animate-pulse' : 'w-3 h-3 bg-gray-400'}`}>
-                  </div>
-                </button>
-                <button
-                    onClick={(e)=> {
-                      e.stopPropagation();
-                      onDeleteFlightPlan(fp, flightplanData["flightplans"], drawRef, setFlightplans);
-                    }}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              {flightplanData?.["flightplans"]?.map((fp: any) => {
+                const isActive = fp.missionId === flightplanData["metadata"].currentFlightPlan;
+                return (
+                  <div className="flex" key={fp.missionId}>
+                    <button
+                      onClick={() => onSelectFlightPlan(fp, drawRef)}
+                      className="flex-1 text-left p-3 border rounded-l hover:bg-blue-50 transition-all group border-gray-100 hover:border-blue-200"
+                    >
+                      <div className="font-medium text-sm text-blue-600 group-hover:text-blue-800">
+                        ID: {fp.missionId.slice(0, 8)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(fp.createdAt).toLocaleString()}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setConfirmingId(fp.missionId)}
+                      title={isActive ? 'Active mission' : 'Set as active mission'}
+                      className={`self-stretch px-3 border-t border-b border-gray-100 flex items-center transition-colors ${
+                        isActive ? 'cursor-default' : 'hover:bg-green-50'
+                      }`}
+                    >
+                      <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDeleteId(fp.missionId)}
+                      className="self-stretch px-3 border rounded-r border-gray-100 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                     >
                       X
-                  </button>
-                </div>
-              ))}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -99,10 +171,12 @@ export function Sidebar({
       <div className="pt-6 border-t border-gray-100 mt-auto">
         <h2 className="text-lg font-semibold mb-3 text-red-800 uppercase text-xs tracking-wider">Emergency Controls</h2>
         <div className="space-y-2">
-          <button className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-bold transition-all active:scale-95">
+          <button className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-bold transition-all active:scale-95"
+          onClick={() => sendEmergencySignal("ABORT")}>
             ABORT FLIGHT
           </button>
-          <button className="w-full bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-semibold">
+          <button className="w-full bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-semibold"
+          onClick={() => sendEmergencySignal("LAND")}>
             Emergency Land
           </button>
         </div>
